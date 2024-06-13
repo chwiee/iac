@@ -1,0 +1,79 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  MyApi:
+    Type: 'AWS::ApiGateway::RestApi'
+    Properties:
+      Name: 'MyApi'
+
+  RouteA:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !Ref MyApi
+      ParentId: !GetAtt 
+        - MyApi
+        - RootResourceId
+      PathPart: 'route-a'
+    DependsOn: MyApi
+
+  RouteB:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !Ref MyApi
+      ParentId: !GetAtt 
+        - MyApi
+        - RootResourceId
+      PathPart: 'route-b'
+    DependsOn: MyApi
+
+  RouteC:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !Ref MyApi
+      ParentId: !GetAtt 
+        - MyApi
+        - RootResourceId
+      PathPart: 'route-c'
+    DependsOn: MyApi
+
+  RouteAMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      RestApiId: !Ref MyApi
+      ResourceId: !Ref RouteA
+      HttpMethod: 'GET'
+      AuthorizationType: 'NONE'
+      Integration:
+        Type: 'AWS_PROXY'
+        IntegrationHttpMethod: 'POST'
+        Uri: 'arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:123456789012:function:YourLambdaFunction/invocations'
+        PassthroughBehavior: 'WHEN_NO_MATCH'
+
+  RouteBMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      RestApiId: !Ref MyApi
+      ResourceId: !Ref RouteB
+      HttpMethod: 'GET'
+      AuthorizationType: 'NONE'
+      Integration:
+        Type: 'HTTP'
+        IntegrationHttpMethod: 'GET'
+        Uri: 'http://your-eks-cluster-url'
+
+  RouteCMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      RestApiId: !Ref MyApi
+      ResourceId: !Ref RouteC
+      HttpMethod: 'GET'
+      AuthorizationType: 'NONE'
+      Integration:
+        Type: 'HTTP'
+        IntegrationHttpMethod: 'GET'
+        Uri: 'http://your-dns-record'
+
+  Deployment:
+    Type: 'AWS::ApiGateway::Deployment'
+    Properties:
+      RestApiId: !Ref MyApi
+    DependsOn: [RouteAMethod, RouteBMethod, RouteCMethod]
