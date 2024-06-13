@@ -12,24 +12,49 @@ class HostedZoneRequest(BaseModel):
     balancer_dns: str
     new_dns: str
     region: str
+    resource_type: str
 
 class CreateRecordRequest(BaseModel):
     ttl: int = 5
 
 ELB_HOSTED_ZONE_IDS = {
-    'us-east-1': 'Z35SXDOTRQ7X7K',
-    'us-west-2': 'Z1H1FL5HABSF5',
-    'us-west-1': 'Z368ELLRRE2KJ0',
-    'eu-west-1': 'Z32O12XQLNTSW2',
-    'ap-southeast-1': 'Z1LMS91P8CMLE5',
-    'ap-northeast-1': 'Z14GRHDCWA56QT',
-    'ap-southeast-2': 'Z1GM3OXH4ZPM65',
-    'sa-east-1': 'Z2P70J7HTTTPLU',
+    'us-east-1': {
+        'ALB': 'Z35SXDOTRQ7X7K',
+        'NLB': 'Z26RNL4JYFTOTI'
+    },
+    'us-west-2': {
+        'ALB': 'Z1H1FL5HABSF5',
+        'NLB': 'Z24FKFUX50B4VW'
+    },
+    'us-west-1': {
+        'ALB': 'Z368ELLRRE2KJ0',
+        'NLB': 'Z1M58G0W56PQJA'
+    },
+    'eu-west-1': {
+        'ALB': 'Z32O12XQLNTSW2',
+        'NLB': 'Z2IFOLAFXWLO4F'
+    },
+    'ap-southeast-1': {
+        'ALB': 'Z1LMS91P8CMLE5',
+        'NLB': 'ZKVM4W9LS7TM'
+    },
+    'ap-northeast-1': {
+        'ALB': 'Z14GRHDCWA56QT',
+        'NLB': 'Z31USIVHYNEOWT'
+    },
+    'ap-southeast-2': {
+        'ALB': 'Z1GM3OXH4ZPM65',
+        'NLB': 'ZTBHRN1DRG5OI'
+    },
+    'sa-east-1': {
+        'ALB': 'Z2P70J7HTTTPLU',
+        'NLB': 'Z3Q77PNBQS71R4'
+    },
 }
 
 @app.get("/")
 def read_root():
-    return {"message": "API do Route 53 está funcionando!"}
+    return {"message": "API do Route 53 esta funcionando!"}
 
 @app.get("/hosted-zones")
 def list_hosted_zones():
@@ -42,10 +67,13 @@ def list_hosted_zones():
 
 @app.post("/create-record")
 def create_record(request: HostedZoneRequest, record: CreateRecordRequest):
-    elb_hosted_zone_id = ELB_HOSTED_ZONE_IDS.get(request.region)
+    if request.resource_type not in ['ALB', 'NLB']:
+        raise HTTPException(status_code=400, detail="Tipo de recurso invalido. Deve ser 'ALB' ou 'NLB'.")
+    
+    elb_hosted_zone_id = ELB_HOSTED_ZONE_IDS.get(request.region, {}).get(request.resource_type)
     
     if not elb_hosted_zone_id:
-        raise HTTPException(status_code=400, detail=f"Região {request.region} não encontrada na lista de Hosted Zone IDs do ELB.")
+        raise HTTPException(status_code=400, detail=f"Regiao {request.region} ou tipo de recurso {request.resource_type} nao encontrado na lista de Hosted Zone IDs do ELB.")
 
     try:
         response = client.change_resource_record_sets(
