@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wb-r53
+  labels:
+    app: wb-r53
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wb-r53
+  template:
+    metadata:
+      labels:
+        app: wb-r53
+    spec:
+      containers:
+      - name: wb-r53
+        image: wb-r53:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: AWS_ACCESS_KEY_ID
+          value: "<your-access-key-id>"
+        - name: AWS_SECRET_ACCESS_KEY
+          value: "<your-secret-access-key>"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wb-r53
+spec:
+  selector:
+    app: wb-r53
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wb-r53-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: wb-r53.wbhome.net
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: wb-r53
+            port:
+              number: 80
+---
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: wb-r53-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: wb-r53
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
